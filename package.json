@@ -1,0 +1,21 @@
+{
+  "name": "leeroy",
+  "version": "0.1.0",
+  "description": "Lambda function to receive Slack webhooks and then kick off CircleCI builds.",
+  "license": "UNLICENSED",
+  "private": true,
+  "author": {
+    "name": "Flatiron School",
+    "email": "devops@flatironschool.com"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^10.12.15",
+    "prettier": "1.15.3",
+    "tslint": "^5.11.0",
+    "typescript": "3.2.2"
+  }
+}
