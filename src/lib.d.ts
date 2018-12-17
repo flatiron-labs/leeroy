@@ -1,4 +1,4 @@
-// Type definitions for Slack
+// Type definitions for Leeroy
 // Project: Leeroy
 // Definitions by: @gj <https://github.com/gj>
 
@@ -42,4 +42,47 @@ export interface SlackChannelResponse {
   channel?: SlackChannel;
   error?: string;
   ok: boolean;
+}
+
+interface SlackInteractiveMessageActionSelectedOption {
+  value: string;
+}
+
+interface SlackInteractiveMessageAction {
+  name: string;
+  selected_options: SlackInteractiveMessageActionSelectedOption[];
+  type: string;
+}
+
+export interface SlackInteractiveMessageResponse {
+  action_ts: string;
+  actions: SlackInteractiveMessageAction[];
+  attachment_id: string;
+  callback_id: string;
+  channel: {
+    id: string;
+    name: string;
+  };
+  is_app_unfurl: boolean;
+  message_ts: string;
+  response_url: string;
+  team: {
+    domain: string;
+    id: string;
+  };
+  token: string;
+  trigger_id: string;
+  type: string;
+  user: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface GitHubBranch {
+  name: string;
+  commit: {
+    sha: string;
+    url: string;
+  };
 }
