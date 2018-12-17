@@ -7,7 +7,14 @@ import {
 import { createHmac, timingSafeEqual } from 'crypto';
 import { get, request } from 'https';
 import { parse, stringify } from 'querystring';
-import { GitHubBranch, SlackChannel, SlackChannelResponse } from './lib';
+import {
+  CircleCIBuildPayload,
+  GitHubBranch,
+  SlackChannel,
+  SlackChannelResponse,
+  SlackInteractiveMessageResponse,
+  SlackPostMessageResponse
+} from './lib';
 
 if (!process.env.SLACK_SIGNING_SECRET) {
   console.error('You must export a SLACK_SIGNING_SECRET environment variable.');
@@ -123,7 +130,7 @@ function handleDeployRequest(
   request
     .on('error', error => handleRequestError(error, response))
     .on('data', chunk => rawBody.push(chunk))
-    .on('end', async () => {
+    .on('end', () => {
       const body: string = Buffer.concat(rawBody).toString();
       const { headers } = request;
       const timestamp: string = headers['x-slack-request-timestamp'] as string;
@@ -141,18 +148,20 @@ function handleDeployRequest(
       }
 
       const parsedBody = parse(body);
-      const payload = JSON.parse(parsedBody.payload as string);
-      const branch = payload.actions[0].selected_options[0].value;
-      const slackUserID = payload.user.id;
-      const slackUsername = payload.user.name;
+      const interactiveMessageResponse: SlackInteractiveMessageResponse = JSON.parse(
+        parsedBody.payload as string
+      );
 
-      deployBranch(branch, slackUserID, slackUsername);
+      const branch: string =
+        interactiveMessageResponse.actions[0].selected_options[0].value;
+      const slackUserID: string = interactiveMessageResponse.user.id;
+      const slackUsername: string = interactiveMessageResponse.user.name;
+      const channel: string = interactiveMessageResponse.channel.id;
 
-      const org: string = process.env.GITHUB_ORGANIZATION as string;
-      const repo: string = process.env.GITHUB_REPO as string;
+      deployBranch(branch, slackUserID, slackUsername, channel);
 
       return response.end(
-        `:rocket: Deploying branch ${branch} of ${org}/${repo}`
+        `:rocket: Deploying branch :twisted_rightwards_arrows: *${branch}*!`
       );
     });
 }
@@ -160,7 +169,8 @@ function handleDeployRequest(
 function deployBranch(
   branch: string,
   slackUserID: string,
-  slackUsername: string
+  slackUsername: string,
+  channel: string
 ): void {
   const token: string = process.env.CIRCLE_API_TOKEN as string;
   const org: string = process.env.GITHUB_ORGANIZATION as string;
@@ -181,7 +191,8 @@ function deployBranch(
     method: 'POST',
     path: `/api/v1.1/project/github/${org}/${repo}/tree/${branch}?${queryParams}`,
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
     }
   };
 
@@ -192,12 +203,19 @@ function deployBranch(
       .on('data', chunk => (rawBody += chunk))
       .on('end', () => {
         try {
-          const body: GitHubBranch[] = JSON.parse(rawBody);
-          console.dir(body);
-          return true;
+          const body: CircleCIBuildPayload = JSON.parse(rawBody);
+          const circleURL: string = body.build_url;
+
+          const responseBody: string = constructDeploymentResponse(
+            branch,
+            slackUsername,
+            circleURL,
+            channel
+          );
+
+          broadcastDeploymentToChannel(responseBody);
         } catch (e) {
           console.error(e);
-          return false;
         }
       });
   });
@@ -334,7 +352,7 @@ function fetchBranches(): Promise<GitHubBranch[]> {
 
 function constructBranchesResponse(branches: GitHubBranch[]): string {
   return JSON.stringify({
-    text: 'Which branch would you like to deploy?',
+    text: ':twisted_rightwards_arrows: Which branch would you like to deploy?',
     response_type: 'ephemeral',
     replace_original: true,
     attachments: [
@@ -358,4 +376,54 @@ function constructBranchesResponse(branches: GitHubBranch[]): string {
       }
     ]
   });
+}
+
+function constructDeploymentResponse(
+  branch: string,
+  slackUsername: string,
+  circleURL: string,
+  channel: string
+): string {
+  const org: string = process.env.GITHUB_ORGANIZATION as string;
+  const repo: string = process.env.GITHUB_REPO as string;
+
+  return JSON.stringify({
+    channel,
+    response_type: 'in_channel',
+    text: `:female-technologist: *${slackUsername}* has started deploying branch :twisted_rightwards_arrows: *${branch}* of :github: *${org}/${repo}*.\n\nFollow along at ${circleURL}.`
+  });
+}
+
+function broadcastDeploymentToChannel(responseBody: string): void {
+  const token: string = process.env.SLACK_API_TOKEN as string;
+
+  const options = {
+    hostname: 'slack.com',
+    method: 'POST',
+    path: '/api/chat.postMessage',
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      Authorization: `Bearer ${token}`
+    }
+  };
+
+  const req: ClientRequest = request(options, response => {
+    let rawBody: string = '';
+
+    response
+      .on('data', chunk => (rawBody += chunk))
+      .on('end', () => {
+        try {
+          const body: SlackPostMessageResponse = JSON.parse(rawBody);
+
+          if (!body.ok) console.error(body);
+        } catch (e) {
+          console.error(e);
+        }
+      });
+  });
+
+  req.on('error', console.error);
+  req.write(responseBody);
+  req.end();
 }

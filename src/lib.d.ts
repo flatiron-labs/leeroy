@@ -79,10 +79,100 @@ export interface SlackInteractiveMessageResponse {
   };
 }
 
+export interface SlackPostMessageResponse {
+  ok: boolean;
+  error?: string;
+  warning?: string;
+  response_metadata?: {
+    warnings: string[];
+  };
+  channel?: string;
+  message?: {
+    type: string;
+    subtype: string;
+    text: string;
+    ts: string;
+    username: string;
+    bot_id: string;
+  };
+  ts?: string;
+}
+
 export interface GitHubBranch {
   name: string;
   commit: {
     sha: string;
     url: string;
   };
+}
+
+export interface CircleCIBuildPayload {
+  compare: any | null;
+  previous_successful_build: {
+    build_num: number;
+    status: string;
+    build_time_millis: number;
+  };
+  build_parameters: {
+    CIRCLE_JOB: string;
+    DEPLOY_ENV: string;
+    SLACK_USER_ID: string;
+    SLACK_USERNAME: string;
+    TRIGGERED_BY: string;
+  };
+  oss: boolean;
+  committer_date: any | null;
+  body: any | null;
+  usage_queued_at: string;
+  fail_reason: any | null;
+  retry_of: any | null;
+  reponame: string;
+  ssh_users: any[];
+  build_url: string;
+  parallel: number;
+  failed: any | null;
+  branch: string;
+  username: string;
+  author_date: any | null;
+  why: string;
+  user: {
+    is_user: boolean;
+    login: string;
+  };
+  vcs_revision: string;
+  vcs_tag: any | null;
+  build_num: number;
+  infrastructure_fail: boolean;
+  committer_email: any | null;
+  previous: {
+    build_num: number;
+    status: string;
+    build_time_millis: number;
+  };
+  status: string;
+  committer_name: any | null;
+  retries: any | null;
+  subject: any | null;
+  vcs_type: string;
+  timedout: boolean;
+  dont_build: any | null;
+  lifecycle: string;
+  no_dependency_cache: boolean;
+  stop_time: any | null;
+  ssh_disabled: boolean;
+  build_time_millis: any | null;
+  picard: any | null;
+  circle_yml: { string: string };
+  messages: any[];
+  is_first_green_build: boolean;
+  job_name: any | null;
+  start_time: any | null;
+  canceler: any | null;
+  platform: string;
+  outcome: any | null;
+  vcs_url: string;
+  author_name: any | null;
+  node: any | null;
+  canceled: boolean;
+  author_email: any | null;
 }
